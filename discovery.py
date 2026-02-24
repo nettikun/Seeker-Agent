@@ -37,9 +37,9 @@ async def ensure_wallet_exists(db, address, source="discovery"):
 
 
 async def record_edge(db, source, target, shared_token, block_delta=0):
-    stmt = (
-        pg_insert(WalletEdge)
-        .values(
+    try:
+        await db.rollback()
+        stmt = pg_insert(WalletEdge).values(
             source_address=source,
             target_address=target,
             shared_token=shared_token,
@@ -47,18 +47,11 @@ async def record_edge(db, source, target, shared_token, block_delta=0):
             co_occurrences=1,
             first_seen=datetime.utcnow(),
             last_seen=datetime.utcnow(),
-        )
-        .on_conflict_do_update(
-            index_elements=["source_address", "target_address"],
-            set_={
-                "co_occurrences": WalletEdge.co_occurrences + 1,
-                "last_seen": datetime.utcnow(),
-            },
-        )
-    )
-    await db.execute(stmt)
-    await db.commit()
-
+        ).on_conflict_do_nothing()
+        await db.execute(stmt)
+        await db.commit()
+    except Exception:
+        await db.rollback()
 
 async def get_wallets_from_enhanced_txns(helius, token_mint, limit=30):
     wallets = []
