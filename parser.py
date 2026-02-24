@@ -144,17 +144,44 @@ def _parse_via_token_transfers(txn: Dict, wallet_address: str) -> Optional[Parse
     return None
 
 
-def _parse_via_swap_event(txn: Dict, wallet_address: str) -> Optional[ParsedTrade]:
-    """
-    Parse using the events.swap structure.
-    """
+def _parse_via_swap_event(txn, wallet_address):
     sig = txn.get("signature", "")
     ts = txn.get("timestamp", 0)
     block_time = datetime.utcfromtimestamp(ts) if ts else datetime.utcnow()
-
     swap = txn.get("events", {}).get("swap", {})
     if not swap:
         return None
-
     native_input = swap.get("nativeInput") or {}
-    native
+    native_output = swap.get("nativeOutput") or {}
+    token_inputs = swap.get("tokenInputs", [])
+    token_outputs = swap.get("tokenOutputs", [])
+    if native_input and token_outputs:
+        sol_amount = _safe_float(native_input.get("amount", 0)) / 1e9
+        token_out = token_outputs[0]
+        token_mint = token_out.get("mint", "")
+        token_symbol = token_out.get("symbol", token_mint[:8])
+        usd_val = sol_amount * 150
+        token_amount = _safe_float(token_out.get("rawTokenAmount", {}).get("tokenAmount", 1))
+        return ParsedTrade(signature=sig, wallet_address=wallet_address, token_address=token_mint,
+            token_symbol=token_symbol, side="buy", amount_sol=sol_amount, amount_usd=usd_val,
+            price_usd=usd_val / max(token_amount, 1), block_time=block_time,
+            used_jito="jito" in str(txn).lower(), raw=txn)
+    elif token_inputs and native_output:
+        sol_amount = _safe_float(native_output.get("amount", 0)) / 1e9
+        token_in = token_inputs[0]
+        token_mint = token_in.get("mint", "")
+        token_symbol = token_in.get("symbol", token_mint[:8])
+        usd_val = sol_amount * 150
+        token_amount = _safe_float(token_in.get("rawTokenAmount", {}).get("tokenAmount", 1))
+        return ParsedTrade(signature=sig, wallet_address=wallet_address, token_address=token_mint,
+            token_symbol=token_symbol, side="sell", amount_sol=sol_amount, amount_usd=usd_val,
+            price_usd=usd_val / max(token_amount, 1), block_time=block_time,
+            used_jito="jito" in str(txn).lower(), raw=txn)
+    elif token_inputs and token_outputs:
+        token_in = token_inputs[0]
+        token_out = token_outputs[0]
+        in_mint = token_in.get("mint", "")
+        out_mint = token_out.get("mint", "")
+        if in_mint in STABLE_MINTS or in_mint == SOL_MINT:
+            usd_val = _safe_float(token_in.get("rawTokenAmount", {}).get("tokenAmount", 0))
+            token_mint = out_mint
