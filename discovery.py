@@ -113,21 +113,34 @@ async def discover_from_wallet(helius, db, wallet_address, already_seen):
     discovered = []
     try:
         txns = await helius.get_parsed_transactions(wallet_address, limit=100)
+        logger.info(f"[DISCOVERY] {wallet_address[:8]} — fetched {len(txns)} raw txns")
         if not txns:
-            logger.debug(f"No transactions found for {wallet_address[:8]}")
             return []
+
         trades = parse_transactions_batch(txns, wallet_address)
+        logger.info(f"[DISCOVERY] {wallet_address[:8]} — parsed {len(trades)} trades")
         if not trades:
-            logger.debug(f"No parseable trades for {wallet_address[:8]}")
-            return []
-        bought_tokens = list({
-            t.token_address for t in trades
-            if t.side == "buy" and t.token_address and len(t.token_address) >= 32
-        })
-        logger.debug(f"[DISCOVERY] {wallet_address[:8]} traded {len(bought_tokens)} tokens")
+            # Fallback: extract feePayer directly from raw transactions
+            token_mints = set()
+            for txn in txns:
+                for transfer in txn.get("tokenTransfers", []):
+                    mint = transfer.get("mint", "")
+                    if mint and len(mint) >= 32:
+                        token_mints.add(mint)
+            logger.info(f"[DISCOVERY] {wallet_address[:8]} — fallback found {len(token_mints)} token mints")
+        else:
+            token_mints = {
+                t.token_address for t in trades
+                if t.token_address and len(t.token_address) >= 32
+            }
+            logger.info(f"[DISCOVERY] {wallet_address[:8]} — found {len(token_mints)} unique tokens")
+
+        bought_tokens = list(token_mints)
+
         for token in bought_tokens[:8]:
             try:
                 co_traders = await get_wallets_from_enhanced_txns(helius, token, limit=25)
+                logger.info(f"[DISCOVERY] token {token[:8]} — found {len(co_traders)} co-traders")
                 if not co_traders:
                     co_traders = await get_token_recent_buyers(helius, token, limit=20)
                 new_count = 0
@@ -143,10 +156,11 @@ async def discover_from_wallet(helius, db, wallet_address, already_seen):
                         new_count += 1
                     await record_edge(db, wallet_address, co_wallet, token)
                 if new_count > 0:
-                    logger.debug(f"[DISCOVERY] +{new_count} wallets from token {token[:8]}")
+                    logger.info(f"[DISCOVERY] +{new_count} wallets from token {token[:8]}")
             except Exception as e:
-                logger.debug(f"[DISCOVERY] token {token[:8]} error: {e}")
+                logger.warning(f"[DISCOVERY] token {token[:8]} error: {e}")
             await asyncio.sleep(0.2)
+
     except Exception as e:
         logger.warning(f"[DISCOVERY] discover_from_wallet {wallet_address[:8]}: {e}")
     return discovered
