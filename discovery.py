@@ -19,16 +19,21 @@ from config import settings, HELIUS_API
 async def ensure_wallet_exists(db, address, source="discovery"):
     if not address or len(address) < 32 or len(address) > 44:
         return False
-    stmt = pg_insert(Wallet).values(
-        address=address,
-        tier=WalletTier.CANDIDATE,
-        discovery_source=source,
-        first_seen=datetime.utcnow(),
-        last_active=datetime.utcnow(),
-    ).on_conflict_do_nothing(index_elements=["address"])
-    result = await db.execute(stmt)
-    await db.commit()
-    return result.rowcount > 0
+    try:
+        await db.rollback()
+        stmt = pg_insert(Wallet).values(
+            address=address,
+            tier=WalletTier.CANDIDATE,
+            discovery_source=source,
+            first_seen=datetime.utcnow(),
+            last_active=datetime.utcnow(),
+        ).on_conflict_do_nothing(index_elements=["address"])
+        result = await db.execute(stmt)
+        await db.commit()
+        return result.rowcount > 0
+    except Exception as e:
+        await db.rollback()
+        return False
 
 
 async def record_edge(db, source, target, shared_token, block_delta=0):
