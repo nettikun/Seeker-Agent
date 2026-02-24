@@ -384,14 +384,15 @@ async def run_agent(public_webhook_url: str = "https://your-server.com/webhook/h
     await create_all_tables()
     logger.info("[INIT] Database tables verified.")
 
-    # Seed initial wallets from config
-    from discovery import SEED_WALLETS
+   # Seed initial wallets from config
+    from config import settings as _settings
+    SEED_WALLETS = _settings.seed_wallets
     async with AsyncSessionLocal() as db:
         for addr in SEED_WALLETS:
             await ensure_wallet_exists(db, addr, source="config_seed")
     if SEED_WALLETS:
         logger.info(f"[INIT] Seeded {len(SEED_WALLETS)} initial wallets.")
-
+      
     # Register live trade handler with webhook server
     from webhook_server import register_handler
     register_handler(handle_live_transaction)
