@@ -173,8 +173,7 @@ async def scoring_loop(helius: HeliusClient):
 
                         # Even if parser returns 0 trades, try extracting
                         # directly from raw token transfers as fallback
-                        if not trades:
-                            # Mark as scored so it stops being requeued
+                     if not trades:
                             await db.execute(
                                 update(Wallet)
                                 .where(Wallet.address == wallet.address)
@@ -182,6 +181,8 @@ async def scoring_loop(helius: HeliusClient):
                             )
                             await db.commit()
                             continue
+
+                        score, bot_analysis = compute_score_from_trades(wallet.address, trades)
 
                         # Log tier change + alert
                         if score.recommended_tier != wallet.tier:
