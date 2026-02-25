@@ -165,53 +165,30 @@ async def scoring_loop(helius: HeliusClient):
                 wallets = await get_wallets_due_for_rescore(db, limit=50)
                 if wallets:
                     logger.info(f"[SCORING] Processing {len(wallets)} wallets…")
-
                 for wallet in wallets:
                     try:
                         txns = await helius.get_all_transactions(wallet.address, max_txns=500)
                         trades = parse_transactions_batch(txns, wallet.address)
-
-                      if not trades:
-                            await db.execute(
-                                update(Wallet)
-                                .where(Wallet.address == wallet.address)
-                                .values(last_scored=datetime.utcnow())
-                            )
+                        if not trades:
+                            await db.execute(update(Wallet).where(Wallet.address == wallet.address).values(last_scored=datetime.utcnow()))
                             await db.commit()
                             continue
-
                         score, bot_analysis = compute_score_from_trades(wallet.address, trades)
-
-                        # Log tier change + alert
                         if score.recommended_tier != wallet.tier:
-                            logger.info(
-                                f"[TIER CHANGE] {wallet.address[:8]}… "
-                                f"{wallet.tier} → {score.recommended_tier} "
-                                f"(WR={score.win_rate:.1%}, bot={bot_analysis.bot_score:.2f})"
-                            )
-                            # Fire Telegram alert for notable promotions
+                            logger.info(f"[TIER CHANGE] {wallet.address[:8]}… {wallet.tier} → {score.recommended_tier} (WR={score.win_rate:.1%}, bot={bot_analysis.bot_score:.2f})")
                             await send_tier_change_alert(wallet, wallet.tier, score.recommended_tier)
-                            # Extra exile alert for newly detected bots
                             if score.recommended_tier == WalletTier.EXILED:
-                                await send_bot_exile_alert(
-                                    wallet.address,
-                                    bot_analysis.bot_score,
-                                    bot_analysis.signals,
-                                )
-
+                                await send_bot_exile_alert(wallet.address, bot_analysis.bot_score, bot_analysis.signals)
                         await persist_score(db, score)
                     except Exception as e:
                         counters.errors += 1
                         logger.error(f"[SCORING] Error on {wallet.address[:8]}: {e}")
                     await asyncio.sleep(0.3)
-
-            # Run cluster bot detection periodically
             await run_cluster_detection()
-
         except Exception as e:
             counters.errors += 1
             logger.error(f"[SCORING] Loop error: {e}")
-        await asyncio.sleep(60)  # re-check every minute, scoring filters by last_scored
+        await asyncio.sleep(60)
 
 
 async def run_cluster_detection():
