@@ -171,9 +171,7 @@ async def scoring_loop(helius: HeliusClient):
                         txns = await helius.get_all_transactions(wallet.address, max_txns=500)
                         trades = parse_transactions_batch(txns, wallet.address)
 
-                        # Even if parser returns 0 trades, try extracting
-                        # directly from raw token transfers as fallback
-                     if not trades:
+                      if not trades:
                             await db.execute(
                                 update(Wallet)
                                 .where(Wallet.address == wallet.address)
