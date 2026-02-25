@@ -22,7 +22,7 @@ from database import (
     AsyncSessionLocal, Wallet, WalletTier, AgentHealth, create_all_tables
 )
 from helius import HeliusClient
-from parser import parse_enhanced_transaction, parse_transactions_batch
+from parser import parse_transactions_batch
 from scorer import compute_score_from_trades, persist_score, persist_trades, get_wallets_due_for_rescore
 from discovery import run_discovery_cycle, ensure_wallet_exists, fetch_birdeye_top_traders
 from alerts import (
