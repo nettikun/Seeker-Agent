@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEEKER — Autonomous Solana Alpha Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #050608;
+  --bg2: #0a0c10;
+  --bg3: #0f1218;
+  --border: rgba(255,255,255,0.06);
+  --gold: #f5a623;
+  --gold2: #ffcc62;
+  --green: #00e5a0;
+  --red: #ff4757;
+  --blue: #4a9eff;
+  --text: #e8eaf0;
+  --muted: #5a6070;
+  --card: rgba(255,255,255,0.03);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  overflow-x: hidden;
+}
+
+/* NOISE OVERLAY */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.4;
+}
+
+/* SCANLINES */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+  pointer-events: none;
+  z-index: 999;
+}
+
+/* NAV */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 20px 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  background: rgba(5,6,8,0.8);
+  backdrop-filter: blur(20px);
+}
+
+.nav-logo {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 1.4rem;
+  letter-spacing: 0.3em;
+  color: var(--gold);
+  text-decoration: none;
+}
+
+.nav-logo span { color: var(--text); opacity: 0.4; }
+
+.nav-links {
+  display: flex;
+  gap: 40px;
+  list-style: none;
+}
+
+.nav-links a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  transition: color 0.2s;
+}
+
+.nav-links a:hover { color: var(--text); }
+
+.nav-cta {
+  background: var(--gold);
+  color: #000;
+  border: none;
+  padding: 10px 24px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nav-cta:hover { background: var(--gold2); transform: translateY(-1px); }
+
+/* HERO */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120px 60px 80px;
+  position: relative;
+  text-align: center;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(245,166,35,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 80% at 80% 50%, rgba(0,229,160,0.04) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 80% at 20% 50%, rgba(74,158,255,0.04) 0%, transparent 50%);
+}
+
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(245,166,35,0.1);
+  border: 1px solid rgba(245,166,35,0.3);
+  padding: 6px 16px;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 40px;
+  animation: fadeUp 0.6s ease both;
+}
+
+.hero-tag::before {
+  content: '';
+  width: 6px; height: 6px;
+  background: var(--gold);
+  border-radius: 50%;
+  animation: pulse 2s ease infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+h1 {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: clamp(3rem, 8vw, 7rem);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin-bottom: 30px;
+  animation: fadeUp 0.6s 0.1s ease both;
+}
+
+h1 em {
+  font-style: normal;
+  color: var(--gold);
+  position: relative;
+}
+
+.hero-sub {
+  font-size: 1rem;
+  color: var(--muted);
+  max-width: 560px;
+  line-height: 1.8;
+  margin-bottom: 50px;
+  animation: fadeUp 0.6s 0.2s ease both;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  animation: fadeUp 0.6s 0.3s ease both;
+}
+
+.btn-primary {
+  background: var(--gold);
+  color: #000;
+  border: none;
+  padding: 16px 36px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover { background: var(--gold2); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(245,166,35,0.3); }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 16px 36px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover { border-color: var(--gold); color: var(--gold); }
+
+/* LIVE TICKER */
+.live-ticker {
+  position: absolute;
+  bottom: 0;
+  left: 0; right: 0;
+  border-top: 1px solid var(--border);
+  overflow: hidden;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  background: rgba(245,166,35,0.03);
+}
+
+.ticker-track {
+  display: flex;
+  gap: 60px;
+  animation: ticker 30s linear infinite;
+  white-space: nowrap;
+  padding: 0 30px;
+}
+
+.ticker-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.ticker-item .up { color: var(--green); }
+.ticker-item .down { color: var(--red); }
+.ticker-item strong { color: var(--text); }
+
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* STATS BAR */
+.stats-bar {
+  padding: 80px 60px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.stat-item {
+  background: var(--bg);
+  padding: 40px;
+  text-align: center;
+}
+
+.stat-num {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 2.8rem;
+  color: var(--gold);
+  display: block;
+  letter-spacing: -0.02em;
+}
+
+.stat-label {
+  font-size: 0.65rem;
+  color: var(--muted);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-top: 8px;
+  display: block;
+}
+
+/* SECTION */
+section { padding: 100px 60px; }
+
+.section-tag {
+  font-size: 0.65rem;
+  color: var(--gold);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  display: block;
+}
+
+h2 {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 20px;
+}
+
+.section-sub {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.8;
+  max-width: 500px;
+  margin-bottom: 60px;
+}
+
+/* HOW IT WORKS */
+.how-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+}
+
+.how-item {
+  background: var(--bg);
+  padding: 40px;
+  position: relative;
+  transition: background 0.3s;
+}
+
+.how-item:hover { background: var(--bg3); }
+
+.how-num {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 3rem;
+  color: rgba(245,166,35,0.15);
+  line-height: 1;
+  margin-bottom: 20px;
+}
+
+.how-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+
+.how-desc {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.how-icon {
+  position: absolute;
+  top: 40px; right: 40px;
+  font-size: 1.5rem;
+  opacity: 0.5;
+}
+
+/* FEATURES */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+}
+
+.feature-card {
+  background: var(--bg);
+  padding: 40px;
+  transition: background 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.feature-card:hover { background: var(--bg3); }
+.feature-card:hover::before { opacity: 1; }
+
+.feature-icon {
+  width: 44px; height: 44px;
+  background: rgba(245,166,35,0.1);
+  border: 1px solid rgba(245,166,35,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  margin-bottom: 24px;
+}
+
+.feature-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 12px;
+}
+
+.feature-desc {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+/* ALERT PREVIEW */
+.alert-preview {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  padding: 60px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: center;
+}
+
+.alert-mock {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.alert-mock-header {
+  background: rgba(245,166,35,0.1);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.7rem;
+  color: var(--gold);
+  letter-spacing: 0.1em;
+}
+
+.alert-mock-body {
+  padding: 20px;
+}
+
+.alert-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  font-size: 0.72rem;
+}
+
+.alert-row:last-child { border-bottom: none; }
+.alert-key { color: var(--muted); }
+.alert-val { color: var(--text); }
+.alert-val.green { color: var(--green); }
+.alert-val.gold { color: var(--gold); }
+.alert-val.blue { color: var(--blue); }
+
+.copy-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0,229,160,0.1);
+  border: 1px solid rgba(0,229,160,0.3);
+  color: var(--green);
+  padding: 4px 10px;
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  margin-top: 12px;
+}
+
+/* PRICING */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+}
+
+.pricing-card {
+  background: var(--bg);
+  padding: 50px 40px;
+  position: relative;
+  transition: background 0.3s;
+}
+
+.pricing-card.featured {
+  background: var(--bg3);
+  border: 1px solid rgba(245,166,35,0.3);
+  margin: -1px;
+  z-index: 1;
+}
+
+.pricing-tag {
+  display: inline-block;
+  background: var(--gold);
+  color: #000;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  padding: 3px 10px;
+  margin-bottom: 24px;
+}
+
+.pricing-name {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+}
+
+.pricing-price {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 3rem;
+  color: var(--gold);
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.pricing-price span {
+  font-size: 1rem;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.pricing-desc {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-bottom: 30px;
+  line-height: 1.6;
+}
+
+.pricing-features {
+  list-style: none;
+  margin-bottom: 36px;
+}
+
+.pricing-features li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+
+.pricing-features li::before {
+  content: '→';
+  color: var(--gold);
+  flex-shrink: 0;
+}
+
+.pricing-features li.inactive { opacity: 0.3; }
+.pricing-features li.inactive::before { content: '×'; color: var(--muted); }
+
+.pricing-btn {
+  width: 100%;
+  padding: 14px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+}
+
+.pricing-btn:hover { border-color: var(--gold); color: var(--gold); }
+.featured .pricing-btn { background: var(--gold); color: #000; border-color: var(--gold); }
+.featured .pricing-btn:hover { background: var(--gold2); }
+
+/* DASHBOARD */
+#dashboard {
+  display: none;
+  min-height: 100vh;
+  background: var(--bg);
+  padding: 80px 0 0;
+}
+
+#dashboard.active { display: block; }
+#landing.hidden { display: none; }
+
+.dash-header {
+  padding: 30px 40px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg2);
+}
+
+.dash-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: 0.2em;
+  color: var(--gold);
+}
+
+.dash-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.7rem;
+  color: var(--green);
+}
+
+.dash-status::before {
+  content: '';
+  width: 8px; height: 8px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse 2s ease infinite;
+}
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.dash-stat {
+  background: var(--bg2);
+  padding: 24px 30px;
+}
+
+.dash-stat-label {
+  font-size: 0.65rem;
+  color: var(--muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.dash-stat-val {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 2rem;
+  color: var(--text);
+}
+
+.dash-stat-val.gold { color: var(--gold); }
+.dash-stat-val.green { color: var(--green); }
+
+.dash-content {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 1px;
+  background: var(--border);
+  min-height: calc(100vh - 300px);
+}
+
+.dash-main { background: var(--bg); }
+.dash-side { background: var(--bg2); border-left: 1px solid var(--border); }
+
+.dash-panel-header {
+  padding: 20px 30px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dash-panel-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dash-panel-count {
+  font-size: 0.65rem;
+  color: var(--muted);
+  background: var(--bg3);
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+}
+
+.wallet-table { width: 100%; border-collapse: collapse; }
+
+.wallet-table th {
+  padding: 12px 30px;
+  text-align: left;
+  font-size: 0.62rem;
+  color: var(--muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+}
+
+.wallet-table td {
+  padding: 14px 30px;
+  font-size: 0.72rem;
+  border-bottom: 1px solid rgba(255,255,255,0.02);
+}
+
+.wallet-table tr:hover td { background: rgba(255,255,255,0.01); }
+
+.tier-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.tier-t1 { background: rgba(245,166,35,0.15); color: var(--gold); border: 1px solid rgba(245,166,35,0.3); }
+.tier-t2 { background: rgba(74,158,255,0.1); color: var(--blue); border: 1px solid rgba(74,158,255,0.2); }
+.tier-bot { background: rgba(255,71,87,0.1); color: var(--red); border: 1px solid rgba(255,71,87,0.2); }
+
+.wr-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wr-track {
+  width: 60px;
+  height: 3px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.wr-fill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 2px;
+}
+
+/* ALERTS FEED */
+.alert-feed { padding: 0; }
+
+.alert-item {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.alert-item:hover { background: rgba(255,255,255,0.02); }
+
+.alert-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.alert-type {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 2px 7px;
+}
+
+.alert-buy { background: rgba(0,229,160,0.1); color: var(--green); }
+.alert-sell { background: rgba(255,71,87,0.1); color: var(--red); }
+.alert-promote { background: rgba(245,166,35,0.1); color: var(--gold); }
+
+.alert-time { font-size: 0.62rem; color: var(--muted); }
+
+.alert-token {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+}
+
+.alert-detail { font-size: 0.65rem; color: var(--muted); }
+.alert-detail strong { color: var(--text); }
+
+/* FOOTER */
+footer {
+  padding: 60px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-logo {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 1.2rem;
+  color: var(--gold);
+  letter-spacing: 0.3em;
+}
+
+.footer-copy {
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+
+/* ANIMATIONS */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes countUp {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); }
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  nav { padding: 16px 24px; }
+  .nav-links { display: none; }
+  .hero { padding: 100px 24px 60px; }
+  section { padding: 60px 24px; }
+  .stats-bar { grid-template-columns: repeat(2, 1fr); padding: 40px 24px; }
+  .how-grid, .features-grid, .pricing-grid { grid-template-columns: 1fr; }
+  .alert-preview { grid-template-columns: 1fr; }
+  .dash-grid { grid-template-columns: repeat(2, 1fr); }
+  .dash-content { grid-template-columns: 1fr; }
+  footer { flex-direction: column; gap: 20px; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo" onclick="showLanding()">SEEKER<span>.AI</span></a>
+  <ul class="nav-links">
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+  </ul>
+  <button class="nav-cta" onclick="showDashboard()">LIVE DASHBOARD →</button>
+</nav>
+
+<!-- LANDING PAGE -->
+<div id="landing">
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-tag">LIVE — 99,847 wallets tracked</div>
+  <h1>Find The<br><em>Smart Money</em><br>Before Anyone Else</h1>
+  <p class="hero-sub">Autonomous AI agent that scans the entire Solana network, identifies elite traders with 40%+ win rates, and alerts you the moment they make a move.</p>
+  <div class="hero-actions">
+    <button class="btn-primary" onclick="showDashboard()">VIEW LIVE DASHBOARD</button>
+    <button class="btn-secondary" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})">SEE PRICING</button>
+  </div>
+
+  <!-- LIVE TICKER -->
+  <div class="live-ticker">
+    <div class="ticker-track" id="ticker">
+      <div class="ticker-item">🟢 <strong>7xKX…9mZQ</strong> bought <span class="up">BONK</span> · 2.4 SOL · 2m ago</div>
+      <div class="ticker-item">🔴 <strong>Ab7x…DiqQ</strong> sold <span class="up">+847%</span> · $12,400 PnL</div>
+      <div class="ticker-item">🤖 <strong>Bot detected</strong> · 3 wallets exiled · score 0.87</div>
+      <div class="ticker-item">⭐ <strong>NEW T1</strong> · HunF7x… promoted · WR 46.3%</div>
+      <div class="ticker-item">🟢 <strong>CeZb…DiqQ</strong> bought <span class="up">WIF</span> · 5.1 SOL · 8m ago</div>
+      <div class="ticker-item">🔔 <strong>Cycle complete</strong> · +2,634 new candidates found</div>
+      <div class="ticker-item">🟢 <strong>7xKX…9mZQ</strong> bought <span class="up">BONK</span> · 2.4 SOL · 2m ago</div>
+      <div class="ticker-item">🔴 <strong>Ab7x…DiqQ</strong> sold <span class="up">+847%</span> · $12,400 PnL</div>
+      <div class="ticker-item">🤖 <strong>Bot detected</strong> · 3 wallets exiled · score 0.87</div>
+      <div class="ticker-item">⭐ <strong>NEW T1</strong> · HunF7x… promoted · WR 46.3%</div>
+      <div class="ticker-item">🟢 <strong>CeZb…DiqQ</strong> bought <span class="up">WIF</span> · 5.1 SOL · 8m ago</div>
+      <div class="ticker-item">🔔 <strong>Cycle complete</strong> · +2,634 new candidates found</div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stat-item">
+    <span class="stat-num" id="stat-wallets">99,847</span>
+    <span class="stat-label">Wallets Tracked</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-num" id="stat-t1">23</span>
+    <span class="stat-label">Tier 1 Elite Traders</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-num" id="stat-wr">43.2%</span>
+    <span class="stat-label">Avg T1 Win Rate</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-num" id="stat-bots">4,891</span>
+    <span class="stat-label">Bots Detected & Exiled</span>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <span class="section-tag">// HOW IT WORKS</span>
+  <h2>Autonomous Alpha<br>Discovery Engine</h2>
+  <p class="section-sub">Four perpetual loops run 24/7, continuously discovering, scoring, and monitoring the best traders on Solana.</p>
+  <div class="how-grid">
+    <div class="how-item">
+      <div class="how-num">01</div>
+      <span class="how-icon">🔍</span>
+      <div class="how-title">Discovery Loop</div>
+      <div class="how-desc">Crawls co-buyers from seed wallets every 5 minutes. Fans out infinitely via graph traversal, finding thousands of new candidates per cycle.</div>
+    </div>
+    <div class="how-item">
+      <div class="how-num">02</div>
+      <span class="how-icon">📊</span>
+      <div class="how-title">Scoring Engine</div>
+      <div class="how-desc">Computes win rate, PnL, hold time, and trade consistency for every candidate. Promotes winners to Tier 2 and Tier 1 automatically.</div>
+    </div>
+    <div class="how-item">
+      <div class="how-num">03</div>
+      <span class="how-icon">🤖</span>
+      <div class="how-title">Bot Elimination</div>
+      <div class="how-desc">Multi-signal bot detector scores each wallet on 8+ signals. Cluster detection identifies coordinated bot networks and exiles them permanently.</div>
+    </div>
+    <div class="how-item">
+      <div class="how-num">04</div>
+      <span class="how-icon">⚡</span>
+      <div class="how-title">Real-Time Alerts</div>
+      <div class="how-desc">Helius webhooks fire the instant a Tier 1 wallet makes a move. Copy-eligible alerts hit your Telegram in under 2 seconds.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features" style="background: var(--bg2); padding: 100px 60px;">
+  <span class="section-tag">// FEATURES</span>
+  <h2>Built For Serious<br>Copy Traders</h2>
+  <p class="section-sub">Every feature designed to give you edge, not just information.</p>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🎯</div>
+      <div class="feature-title">3-Tier Wallet System</div>
+      <div class="feature-desc">Candidates → Tier 2 → Tier 1. Only the absolute best wallets (45%+ WR, $500+ PnL, 80+ trades) reach real-time monitoring.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔬</div>
+      <div class="feature-title">8-Signal Bot Detection</div>
+      <div class="feature-desc">Sub-30s holds, sniper patterns, Jito-only usage, identical trade sizes, cluster detection. Bots never pollute your signal feed.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📡</div>
+      <div class="feature-title">Helius Webhook Engine</div>
+      <div class="feature-desc">Direct blockchain webhooks. No polling. No delay. The moment a Tier 1 wallet signs a transaction, you know about it.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📈</div>
+      <div class="feature-title">FIFO PnL Tracking</div>
+      <div class="feature-desc">Proper first-in first-out trade matching. Tracks every buy and sell per token per wallet. Win rate you can actually trust.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🕸️</div>
+      <div class="feature-title">Graph-Based Discovery</div>
+      <div class="feature-desc">Builds a co-buyer graph from real on-chain data. Finds wallets 5 degrees removed from seeds — before they appear on any leaderboard.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">♾️</div>
+      <div class="feature-title">Self-Growing Database</div>
+      <div class="feature-desc">Starts from 6 seed wallets. After 30 days: 500k+ wallets scored. After 90 days: the most comprehensive Solana trader database in existence.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ALERT PREVIEW -->
+<section style="padding: 100px 60px;">
+  <span class="section-tag">// ALERT PREVIEW</span>
+  <div class="alert-preview">
+    <div>
+      <h2>Alerts That<br>Tell You What<br>To Do</h2>
+      <p class="section-sub">Every alert includes the wallet's full track record, the token, size, and a copy-eligible flag when confidence is highest.</p>
+      <div class="copy-badge">⚡ COPY ELIGIBLE alerts = act now</div>
+    </div>
+    <div class="alert-mock">
+      <div class="alert-mock-header">
+        🟢 BUY DETECTED — TIER 1 WALLET
+      </div>
+      <div class="alert-mock-body">
+        <div class="alert-row"><span class="alert-key">Wallet</span><span class="alert-val blue">HunF7xU1…8kPq</span></div>
+        <div class="alert-row"><span class="alert-key">Tier</span><span class="alert-val gold">⭐ TIER 1</span></div>
+        <div class="alert-row"><span class="alert-key">Win Rate</span><span class="alert-val green">46.3%</span></div>
+        <div class="alert-row"><span class="alert-key">Total PnL</span><span class="alert-val green">+$84,200</span></div>
+        <div class="alert-row"><span class="alert-key">Token</span><span class="alert-val">BONK</span></div>
+        <div class="alert-row"><span class="alert-key">Amount</span><span class="alert-val">4.2 SOL (~$756)</span></div>
+        <div class="alert-row"><span class="alert-key">Bot Score</span><span class="alert-val green">0.08 ✓ Human</span></div>
+        <div class="alert-row"><span class="alert-key">DexScreener</span><span class="alert-val blue">→ View Chart</span></div>
+        <div style="margin-top: 12px;">
+          <div class="copy-badge">⚡ COPY ELIGIBLE — HIGH CONFIDENCE</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing" style="background: var(--bg2); padding: 100px 60px;">
+  <span class="section-tag">// PRICING</span>
+  <h2>Start Copying<br>Smart Money Today</h2>
+  <p class="section-sub">All plans include the core alert system. Upgrade for real-time access and API integration.</p>
+  <div class="pricing-grid">
+    <div class="pricing-card">
+      <div class="pricing-name">SCOUT</div>
+      <div class="pricing-price">$0<span>/mo</span></div>
+      <div class="pricing-desc">See what Seeker can find. Delayed alerts only.</div>
+      <ul class="pricing-features">
+        <li>Live stats dashboard</li>
+        <li>1 hour delayed alerts</li>
+        <li>Top 10 Tier 2 wallets visible</li>
+        <li class="inactive">Tier 1 real-time alerts</li>
+        <li class="inactive">Telegram bot access</li>
+        <li class="inactive">API access</li>
+        <li class="inactive">Bot exile notifications</li>
+      </ul>
+      <button class="pricing-btn">GET STARTED FREE</button>
+    </div>
+    <div class="pricing-card featured">
+      <div class="pricing-tag">MOST POPULAR</div>
+      <div class="pricing-name">ALPHA</div>
+      <div class="pricing-price">$49<span>/mo</span></div>
+      <div class="pricing-desc">Real-time copy trade alerts on every Tier 1 move.</div>
+      <ul class="pricing-features">
+        <li>Full live dashboard</li>
+        <li>Real-time Tier 1 alerts</li>
+        <li>All Tier 2 wallets visible</li>
+        <li>Telegram bot integration</li>
+        <li>Bot exile notifications</li>
+        <li>Wallet deep-dive view</li>
+        <li class="inactive">API access</li>
+      </ul>
+      <button class="pricing-btn">START 7-DAY TRIAL</button>
+    </div>
+    <div class="pricing-card">
+      <div class="pricing-name">WHALE</div>
+      <div class="pricing-price">$199<span>/mo</span></div>
+      <div class="pricing-desc">Full API access. Build your own tools on top of our data.</div>
+      <ul class="pricing-features">
+        <li>Everything in Alpha</li>
+        <li>REST API access</li>
+        <li>Wallet score endpoints</li>
+        <li>Historical trade data</li>
+        <li>Webhook forwarding</li>
+        <li>Priority support</li>
+        <li>Custom seed wallets</li>
+      </ul>
+      <button class="pricing-btn">CONTACT US</button>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">SEEKER</div>
+  <div class="footer-copy">© 2026 Seeker. Not financial advice. Trade at your own risk.</div>
+</footer>
+
+</div><!-- end landing -->
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <div class="dash-header">
+    <div class="dash-title">SEEKER // LIVE INTELLIGENCE DASHBOARD</div>
+    <div style="display:flex;gap:20px;align-items:center">
+      <div class="dash-status">AGENT ONLINE — CYCLE 847</div>
+      <button class="nav-cta" onclick="showLanding()" style="font-size:0.7rem;padding:8px 16px">← BACK TO SITE</button>
+    </div>
+  </div>
+
+  <div class="dash-grid">
+    <div class="dash-stat">
+      <div class="dash-stat-label">Total Wallets Tracked</div>
+      <div class="dash-stat-val gold">99,847</div>
+    </div>
+    <div class="dash-stat">
+      <div class="dash-stat-label">Tier 1 Elite Traders</div>
+      <div class="dash-stat-val green">23</div>
+    </div>
+    <div class="dash-stat">
+      <div class="dash-stat-label">Tier 2 Tracked</div>
+      <div class="dash-stat-val">184</div>
+    </div>
+    <div class="dash-stat">
+      <div class="dash-stat-label">Bots Exiled</div>
+      <div class="dash-stat-val" style="color:var(--red)">4,891</div>
+    </div>
+  </div>
+
+  <div class="dash-content">
+    <div class="dash-main">
+      <div class="dash-panel-header">
+        <div class="dash-panel-title">Top Tracked Wallets</div>
+        <div class="dash-panel-count">23 TIER 1 · 184 TIER 2</div>
+      </div>
+      <table class="wallet-table">
+        <thead>
+          <tr>
+            <th>Wallet</th>
+            <th>Tier</th>
+            <th>Win Rate</th>
+            <th>Total PnL</th>
+            <th>Trades</th>
+            <th>Bot Score</th>
+            <th>Last Active</th>
+          </tr>
+        </thead>
+        <tbody id="wallet-tbody">
+        </tbody>
+      </table>
+    </div>
+
+    <div class="dash-side">
+      <div class="dash-panel-header">
+        <div class="dash-panel-title">Live Alert Feed</div>
+        <div class="dash-panel-count" id="alert-count">0 ALERTS</div>
+      </div>
+      <div class="alert-feed" id="alert-feed"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// MOCK DATA
+const wallets = [
+  { addr: 'HunF7xU1…8kPq', tier: 'T1', wr: 46.3, pnl: 84200, trades: 142, bot: 0.08, active: '2m ago' },
+  { addr: 'CeZbzsqj…DiqQ', tier: 'T1', wr: 44.1, pnl: 62800, trades: 218, bot: 0.11, active: '5m ago' },
+  { addr: 'Ab7xKm9j…ZQr1', tier: 'T1', wr: 51.2, pnl: 118400, trades: 94, bot: 0.05, active: '12m ago' },
+  { addr: '7xKXtg2C…sU4K', tier: 'T1', wr: 48.7, pnl: 94100, trades: 167, bot: 0.09, active: '18m ago' },
+  { addr: 'DYAn4XpA…brt9', tier: 'T1', wr: 43.8, pnl: 47300, trades: 203, bot: 0.14, active: '31m ago' },
+  { addr: 'FAicXNV5…jke8', tier: 'T2', wr: 38.4, pnl: 22100, trades: 87, bot: 0.18, active: '44m ago' },
+  { addr: '5ocNxNQU…D7rg', tier: 'T2', wr: 35.9, pnl: 18700, trades: 124, bot: 0.22, active: '1h ago' },
+  { addr: 'AdmCNJZc…ywP8', tier: 'T2', wr: 33.2, pnl: 9400, trades: 56, bot: 0.31, active: '2h ago' },
+  { addr: 'CkXmLi8C…jng3', tier: 'T2', wr: 31.0, pnl: 4200, trades: 41, bot: 0.19, active: '3h ago' },
+];
+
+const alerts = [
+  { type: 'buy', time: 'just now', token: 'BONK', detail: 'HunF7x… · 4.2 SOL · T1 · ⚡ COPY' },
+  { type: 'promote', time: '2m ago', token: 'TIER 1 PROMOTED', detail: 'HunF7x… · WR 46.3% · bot 0.08' },
+  { type: 'buy', time: '8m ago', token: 'WIF', detail: 'Ab7xKm… · 5.1 SOL · T1 · ⚡ COPY' },
+  { type: 'sell', time: '14m ago', token: 'BONK +284%', detail: 'CeZbzs… · +$12,400 PnL' },
+  { type: 'buy', time: '22m ago', token: 'POPCAT', detail: '7xKXtg… · 2.8 SOL · T1' },
+  { type: 'sell', time: '35m ago', token: 'WIF +127%', detail: 'Ab7xKm… · +$8,200 PnL' },
+  { type: 'buy', time: '41m ago', token: 'MOODENG', detail: 'DYAn4X… · 3.4 SOL · T1 · ⚡ COPY' },
+  { type: 'promote', time: '1h ago', token: 'TIER 2 PROMOTED', detail: 'FAicXN… · WR 38.4%' },
+];
+
+function renderWallets() {
+  const tbody = document.getElementById('wallet-tbody');
+  tbody.innerHTML = wallets.map(w => `
+    <tr>
+      <td style="color:var(--blue);font-family:'JetBrains Mono'">${w.addr}</td>
+      <td><span class="tier-badge ${w.tier === 'T1' ? 'tier-t1' : 'tier-t2'}">${w.tier}</span></td>
+      <td>
+        <div class="wr-bar">
+          <div class="wr-track"><div class="wr-fill" style="width:${w.wr}%"></div></div>
+          <span style="color:var(--green)">${w.wr}%</span>
+        </div>
+      </td>
+      <td style="color:var(--green)">+$${w.pnl.toLocaleString()}</td>
+      <td>${w.trades}</td>
+      <td style="color:${w.bot < 0.3 ? 'var(--green)' : 'var(--red)'}">${w.bot}</td>
+      <td style="color:var(--muted)">${w.active}</td>
+    </tr>
+  `).join('');
+}
+
+function renderAlerts() {
+  const feed = document.getElementById('alert-feed');
+  const count = document.getElementById('alert-count');
+  count.textContent = alerts.length + ' ALERTS';
+  feed.innerHTML = alerts.map(a => `
+    <div class="alert-item">
+      <div class="alert-item-header">
+        <span class="alert-type alert-${a.type}">${a.type.toUpperCase()}</span>
+        <span class="alert-time">${a.time}</span>
+      </div>
+      <div class="alert-token">${a.token}</div>
+      <div class="alert-detail">${a.detail}</div>
+    </div>
+  `).join('');
+}
+
+function showDashboard() {
+  document.getElementById('landing').classList.add('hidden');
+  document.getElementById('dashboard').classList.add('active');
+  window.scrollTo(0,0);
+  renderWallets();
+  renderAlerts();
+}
+
+function showLanding() {
+  document.getElementById('landing').classList.remove('hidden');
+  document.getElementById('dashboard').classList.remove('active');
+  window.scrollTo(0,0);
+}
+
+// ANIMATE STATS
+function animateCount(el, target, prefix='', suffix='') {
+  let start = 0;
+  const duration = 2000;
+  const step = target / (duration / 16);
+  const timer = setInterval(() => {
+    start += step;
+    if (start >= target) { start = target; clearInterval(timer); }
+    el.textContent = prefix + Math.floor(start).toLocaleString() + suffix;
+  }, 16);
+}
+
+// Intersection observer for stats
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      animateCount(document.getElementById('stat-wallets'), 99847);
+      animateCount(document.getElementById('stat-t1'), 23);
+      animateCount(document.getElementById('stat-bots'), 4891);
+      observer.disconnect();
+    }
+  });
+});
+observer.observe(document.querySelector('.stats-bar'));
+
+// LIVE ALERT SIMULATION in dashboard
+setInterval(() => {
+  const tokens = ['BONK', 'WIF', 'POPCAT', 'MOODENG', 'JUP', 'PYTH'];
+  const walletNames = ['HunF7x…', 'CeZbzs…', 'Ab7xKm…', '7xKXtg…'];
+  const token = tokens[Math.floor(Math.random() * tokens.length)];
+  const wallet = walletNames[Math.floor(Math.random() * walletNames.length)];
+  const sol = (Math.random() * 8 + 1).toFixed(1);
+  
+  if (document.getElementById('dashboard').classList.contains('active')) {
+    const feed = document.getElementById('alert-feed');
+    const newAlert = document.createElement('div');
+    newAlert.className = 'alert-item';
+    newAlert.style.background = 'rgba(0,229,160,0.05)';
+    newAlert.innerHTML = `
+      <div class="alert-item-header">
+        <span class="alert-type alert-buy">BUY</span>
+        <span class="alert-time">just now</span>
+      </div>
+      <div class="alert-token">${token}</div>
+      <div class="alert-detail">${wallet} · ${sol} SOL · T1 · ⚡ COPY</div>
+    `;
+    feed.insertBefore(newAlert, feed.firstChild);
+    setTimeout(() => newAlert.style.background = '', 2000);
+    
+    const count = document.getElementById('alert-count');
+    const n = parseInt(count.textContent) + 1;
+    count.textContent = n + ' ALERTS';
+  }
+}, 8000);
+</script>
+</body>
+</html>
