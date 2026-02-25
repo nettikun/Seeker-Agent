@@ -174,12 +174,12 @@ async def scoring_loop(helius: HeliusClient):
                             await db.commit()
                             continue
                         score, bot_analysis = compute_score_from_trades(wallet.address, trades)
+                      await persist_score(db, score)
                         if score.recommended_tier != wallet.tier:
-                            logger.info(f"[TIER CHANGE] {wallet.address[:8]}… {wallet.tier} → {score.recommended_tier} (WR={score.win_rate:.1%}, bot={bot_analysis.bot_score:.2f})")
+                            logger.info(...)
                             await send_tier_change_alert(wallet, wallet.tier, score.recommended_tier)
                             if score.recommended_tier == WalletTier.EXILED:
-                                await send_bot_exile_alert(wallet.address, bot_analysis.bot_score, bot_analysis.signals)
-                        await persist_score(db, score)
+                                await send_bot_exile_alert(...)
                     except Exception as e:
                         counters.errors += 1
                         logger.error(f"[SCORING] Error on {wallet.address[:8]}: {e}")
