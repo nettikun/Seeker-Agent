@@ -83,7 +83,6 @@ async def handle_live_transaction(txn: dict):
     """
     try:
         async with AsyncSessionLocal() as db:
-            # Determine which of our tracked wallets fired this event
             account_data = txn.get("accountData", [])
             wallet_address = None
             for acc in account_data:
@@ -93,7 +92,6 @@ async def handle_live_transaction(txn: dict):
             if not wallet_address:
                 return
 
-            # Fetch wallet record
             result = await db.execute(
                 select(Wallet).where(Wallet.address == wallet_address)
             )
@@ -101,13 +99,13 @@ async def handle_live_transaction(txn: dict):
             if not wallet or wallet.tier == WalletTier.EXILED:
                 return
 
+            from parser import parse_enhanced_transaction
             trade = parse_enhanced_transaction(txn, wallet_address)
             if not trade:
                 return
 
             counters.record_trade()
 
-            # Update last_active
             await db.execute(
                 update(Wallet)
                 .where(Wallet.address == wallet_address)
@@ -115,7 +113,6 @@ async def handle_live_transaction(txn: dict):
             )
             await db.commit()
 
-            # Only alert on buys for Tier 1 wallets; sells if we have PnL data
             is_copy_eligible = (
                 wallet.tier == WalletTier.TIER1
                 and trade.side == "buy"
@@ -174,12 +171,14 @@ async def scoring_loop(helius: HeliusClient):
                             await db.commit()
                             continue
                         score, bot_analysis = compute_score_from_trades(wallet.address, trades)
-                      await persist_score(db, score)
-                        if score.recommended_tier != wallet.tier:
-                            logger.info(...)
-                            await send_tier_change_alert(wallet, wallet.tier, score.recommended_tier)
+                        # FIX: persist score FIRST so Telegram alert shows real data
+                        old_tier = wallet.tier
+                        await persist_score(db, score)
+                        if score.recommended_tier != old_tier:
+                            logger.info(f"[TIER CHANGE] {wallet.address[:8]}… {old_tier} → {score.recommended_tier} (WR={score.win_rate:.1%}, bot={bot_analysis.bot_score:.2f})")
+                            await send_tier_change_alert(wallet, old_tier, score.recommended_tier)
                             if score.recommended_tier == WalletTier.EXILED:
-                                await send_bot_exile_alert(...)
+                                await send_bot_exile_alert(wallet.address, bot_analysis.bot_score, bot_analysis.signals)
                     except Exception as e:
                         counters.errors += 1
                         logger.error(f"[SCORING] Error on {wallet.address[:8]}: {e}")
@@ -198,7 +197,6 @@ async def run_cluster_detection():
             from database import Trade as TradeModel
             from parser import ParsedTrade as PT
 
-            # Get recent trades across all wallets for clustering analysis
             result = await db.execute(
                 select(TradeModel)
                 .where(TradeModel.block_time >= datetime.utcnow() - timedelta(hours=24))
@@ -210,7 +208,6 @@ async def run_cluster_detection():
             for t in db_trades:
                 wallet_trade_map[t.wallet_address].append(t)
 
-            # Convert to ParsedTrade-like objects for clustering
             parsed_map = {}
             for addr, db_trade_list in wallet_trade_map.items():
                 parsed_list = []
@@ -233,7 +230,6 @@ async def run_cluster_detection():
             clusters = detect_bot_clusters(parsed_map)
             if clusters:
                 logger.info(f"[CLUSTER] Detected {len(set(clusters.values()))} bot clusters, {len(clusters)} wallets")
-                # Exile cluster members
                 for addr in clusters:
                     await db.execute(
                         update(Wallet)
@@ -249,10 +245,17 @@ async def run_cluster_detection():
 async def webhook_management_loop(helius: HeliusClient, public_webhook_url: str):
     """
     Keeps the Helius webhook up-to-date with the current Tier 1 wallet list.
-    Runs every 5 minutes to sync additions/removals.
+    FIX: Loads existing webhook ID from env on startup to prevent duplicate creation.
     """
     global _webhook_id, _webhook_addresses
     logger.info("[ORCHESTRATOR] Webhook management loop started.")
+
+    # FIX: Load existing webhook ID from env var to prevent duplicates on restart
+    if not _webhook_id:
+        env_webhook_id = getattr(settings, 'helius_webhook_id', None)
+        if env_webhook_id:
+            _webhook_id = env_webhook_id
+            logger.info(f"[WEBHOOK] Loaded existing webhook ID from env: {_webhook_id}")
 
     while True:
         try:
@@ -268,16 +271,20 @@ async def webhook_management_loop(helius: HeliusClient, public_webhook_url: str)
                 await asyncio.sleep(300)
                 continue
 
-            # Sync webhook
+            # Ensure webhook URL has correct path
+            webhook_url = public_webhook_url
+            if not webhook_url.endswith("/webhook/helius"):
+                webhook_url = webhook_url.rstrip("/") + "/webhook/helius"
+
             if not _webhook_id:
-                # Create new webhook
-                resp = await helius.create_webhook(public_webhook_url, list(tier1_addresses))
+                resp = await helius.create_webhook(webhook_url, list(tier1_addresses))
                 if resp:
                     _webhook_id = resp.get("webhookID")
                     _webhook_addresses = tier1_addresses
                     logger.info(f"[WEBHOOK] Created webhook {_webhook_id} for {len(tier1_addresses)} wallets")
+                    logger.info(f"[WEBHOOK] Save this ID to HELIUS_WEBHOOK_ID env var to prevent duplicates: {_webhook_id}")
             else:
-                success = await helius.edit_webhook(_webhook_id, list(tier1_addresses), public_webhook_url)
+                success = await helius.edit_webhook(_webhook_id, list(tier1_addresses), webhook_url)
                 if success:
                     _webhook_addresses = tier1_addresses
                     logger.info(f"[WEBHOOK] Updated webhook — now tracking {len(tier1_addresses)} Tier 1 wallets")
@@ -295,7 +302,6 @@ async def health_loop():
     while True:
         try:
             async with AsyncSessionLocal() as db:
-                # Count by tier
                 counts = {}
                 for tier in WalletTier:
                     result = await db.execute(
@@ -303,7 +309,6 @@ async def health_loop():
                     )
                     counts[tier] = result.scalar() or 0
 
-                # Prune inactive wallets
                 prune_cutoff = datetime.utcnow() - timedelta(days=settings.prune_inactive_days)
                 await db.execute(
                     update(Wallet)
@@ -315,7 +320,6 @@ async def health_loop():
                 )
                 await db.commit()
 
-                # Log heartbeat
                 db.add(AgentHealth(
                     wallets_tracked=sum(counts.values()),
                     tier1_count=counts.get(WalletTier.TIER1, 0),
@@ -350,25 +354,18 @@ async def health_loop():
             counters.errors += 1
             logger.error(f"[HEALTH] Loop error: {e}")
 
-        await asyncio.sleep(3600)  # hourly
+        await asyncio.sleep(3600)
 
 
 # ─── Main Entry Point ─────────────────────────────────────────────────────────
 async def run_agent(public_webhook_url: str = "https://your-server.com/webhook/helius"):
-    """
-    Bootstrap and run all agent loops + the webhook HTTP server concurrently.
-    `public_webhook_url` must be a publicly reachable HTTPS URL pointing to
-    your webhook_server.py /webhook/helius endpoint.
-    """
     logger.info("=" * 60)
     logger.info("  SOLANA WALLET AGENT — Starting up")
     logger.info("=" * 60)
 
-    # Init DB
     await create_all_tables()
     logger.info("[INIT] Database tables verified.")
 
-   # Seed initial wallets from config
     from config import settings as _settings
     SEED_WALLETS = _settings.seed_wallets
     async with AsyncSessionLocal() as db:
@@ -376,12 +373,10 @@ async def run_agent(public_webhook_url: str = "https://your-server.com/webhook/h
             await ensure_wallet_exists(db, addr, source="config_seed")
     if SEED_WALLETS:
         logger.info(f"[INIT] Seeded {len(SEED_WALLETS)} initial wallets.")
-      
-    # Register live trade handler with webhook server
+
     from webhook_server import register_handler
     register_handler(handle_live_transaction)
 
-    # Start FastAPI webhook server in background
     import uvicorn
     from webhook_server import app as webhook_app
 
