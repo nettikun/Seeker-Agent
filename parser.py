@@ -93,7 +93,45 @@ def parse_enhanced_transaction(txn, wallet_address):
     except Exception as e:
         logger.debug(f"parse error: {e}")
         return None
-
+def parse_enhanced_transaction(txn, wallet_address):
+    try:
+        sig = txn.get("signature", "")
+        ts = txn.get("timestamp", 0)
+        block_time = datetime.utcfromtimestamp(ts) if ts else datetime.utcnow()
+        transfers = txn.get("tokenTransfers", [])
+        sent = [t for t in transfers if t.get("fromUserAccount") == wallet_address]
+        received = [t for t in transfers if t.get("toUserAccount") == wallet_address]
+        native_change = 0
+        for acc in txn.get("accountData", []):
+            if acc.get("account") == wallet_address:
+                native_change = acc.get("nativeBalanceChange", 0)
+                break
+        def is_base(mint):
+            return mint in (SOL_MINT, "") or mint in STABLE_MINTS
+        traded_sent = [t.get("mint","") for t in sent if not is_base(t.get("mint",""))]
+        traded_received = [t.get("mint","") for t in received if not is_base(t.get("mint",""))]
+        if traded_received:
+            token_mint = traded_received[0]
+            tt = next((t for t in received if t.get("mint") == token_mint), {})
+            sol_spent = abs(native_change) / 1e9 if native_change < 0 else 0
+            usd_val = sol_spent * 150
+            return ParsedTrade(signature=sig, wallet_address=wallet_address,
+                token_address=token_mint, token_symbol=tt.get("symbol", token_mint[:8]),
+                side="buy", amount_sol=sol_spent, amount_usd=usd_val, price_usd=0,
+                block_time=block_time, used_jito="jito" in str(txn).lower())
+        elif traded_sent:
+            token_mint = traded_sent[0]
+            tt = next((t for t in sent if t.get("mint") == token_mint), {})
+            sol_received = native_change / 1e9 if native_change > 0 else 0
+            usd_val = sol_received * 150
+            return ParsedTrade(signature=sig, wallet_address=wallet_address,
+                token_address=token_mint, token_symbol=tt.get("symbol", token_mint[:8]),
+                side="sell", amount_sol=sol_received, amount_usd=usd_val, price_usd=0,
+                block_time=block_time, used_jito="jito" in str(txn).lower())
+        return None
+    except Exception as e:
+        logger.debug(f"parse error: {e}")
+        return None
 def parse_transactions_batch(txns, wallet_address):
     trades = []
     for txn in txns:
