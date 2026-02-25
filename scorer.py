@@ -87,6 +87,7 @@ def compute_score_from_trades(
     trade_size_cv = float(np.std(amounts) / (np.mean(amounts) + 1e-9)) if len(amounts) >= 3 else 0.0
 
     # Tier recommendation
+    if total_trades == 0: tier = WalletTier.CANDIDATE
     if bot_analysis.is_bot:
         tier = WalletTier.EXILED
     elif total_trades < settings.min_trades or win_rate < settings.min_win_rate:
